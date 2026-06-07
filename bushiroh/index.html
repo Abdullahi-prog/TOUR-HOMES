@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>TOUR-HOMES | Luxury Tourist Homes & Investment Stays</title>
+  <meta name="description" content="Browse premium apartments and houses for tourists, tenants, and investors with TOUR-HOMES.">
+  <link rel="stylesheet" href="assets/css/home.css">
+    <!-- GenMB Capabilities START -->
+    <script>
+// GenMB relational-db SDK (Capability)
+(function() {
+/**
+ * GenMB Data Client SDK
+ * Relational database CRUD client for generated apps.
+ * Auto-injected at window.genmb.db.
+ *
+ * Usage: window.genmb.db.tableName.method()
+ *   .list(params?)      — List records (filtering, sorting, pagination)
+ *   .getById(id)        — Get single record
+ *   .create(fields)     — Insert new record
+ *   .update(id, fields) — Update record
+ *   .delete(id)         — Remove record
+ *   .count(params?)     — Count records (no data fetched)
+ *   .createMany(records) — Bulk insert (max 100)
+ *   .deleteMany(ids)    — Bulk delete (max 100)
+ */
+
+class GenMBDataClient {
+  constructor(config) {
+    if (!config.appId) {
+      throw new Error('GenMBDataClient: appId is required')
+    }
+    this._base = '/api/data/' + config.appId
+
+    // Return a Proxy so property access creates table helpers dynamically
+    return new Proxy(this, {
+      get: function (target, prop) {
+        // Internal properties and methods pass through
+        if (prop in target || typeof prop === 'symbol' || prop === 'then') {
+          return target[prop]
+        }
+        return target._table(prop)
+      }
+    })
+  }
+
+  _table(name) {
+    var base = this._base
+    var request = this._request
+
+    return {
+      list: function (params) {
+        var qs = ''
+        if (params) {
+          var parts = []
+          Object.keys(params).forEach(function (key) {
+            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+          })
+          if (parts.length) qs = '?' + parts.join('&')
+        }
+        return request('GET', base + '/' + name + qs)
+      },
+      getById: function (id) {
+        return request('GET', base + '/' + name + '/' + id)
+      },
+      create: function (fields) {
+        return request('POST', base + '/' + name, { fields: fields })
+      },
+      update: function (id, fields) {
+        return request('PUT', base + '/' + name + '/' + id, { fields: fields })
+      },
+      delete: function (id) {
+        return request('DELETE', base + '/' + name + '/' + id)
+      },
+      count: function (params) {
+        var qs = ''
+        if (params) {
+          var parts = []
+          Object.keys(params).forEach(function (key) {
+            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+          })
+          if (parts.length) qs = '?' + parts.join('&')
+        }
+        return request('GET', base + '/' + name + '/count' + qs)
+      },
+      createMany: function (records) {
+        return request('POST', base + '/' + name + '/bulk', { records: records })
+      },
+      deleteMany: function (ids) {
+        return request('POST', base + '/' + name + '/bulk-delete', { ids: ids })
+      }
+    }
+  }
+
+  async _request(method, url, body) {
+    var controller = new AbortController()
+    var timer = setTimeout(function () { controller.abort() }, 30000)
+    try {
+      var options = {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal
+      }
+      if (body) {
+        options.body = JSON.stringify(body)
+      }
+      var res = await fetch(url, options)
+      clearTimeout(timer)
+      if (!res.ok) {
+        var errBody = null
+        try { errBody = await res.json() } catch (_) {}
+        var msg = (errBody && errBody.error) || 'Request failed (HTTP ' + res.status + ')'
+        throw new Error(msg)
+      }
+      var result = await res.json()
+      if (!result.success) {
+        throw new Error(result.error || 'Request failed')
+      }
+      return result.data
+    } catch (err) {
+      clearTimeout(timer)
+      if (err.name === 'AbortError') {
+        throw new Error('Database request timed out')
+      }
+      throw err
+    }
+  }
+}
+
+
+// Auto-initialize
+window.genmb = window.genmb || {};
+const config = {
+  "appId": "lmtasGrC11oz"
+};
+window.genmb.db = new GenMBDataClient(config);
+})();
+</script>
+    <!-- GenMB Capabilities END -->
+  </head>
+<body>
+  <header class="site-header">
+    <nav class="nav container" aria-label="Main navigation">
+      <a class="brand" href="index.html" aria-label="TOUR-HOMES home">
+        <span class="brand-mark">TH</span>
+        <span>TOUR-HOMES</span>
+      </a>
+      <div class="nav-links" id="primaryNav">
+        <a href="index.html">Home</a>
+        <a href="property.html">Properties</a>
+        <a href="contact.html">Contact</a>
+        <a href="admin.html">Admin</a>
+      </div>
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">Dark</button>
+        <button class="nav-menu-toggle" id="navMenuToggle" type="button" aria-label="Open navigation menu" aria-controls="primaryNav" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Curated luxury homes for short stays and smart investments</p>
+          <h1>Find a refined home base for every journey.</h1>
+          <p class="hero-lead">TOUR-HOMES showcases premium apartments, villas, townhouses, and coastal residences designed for tourists, tenants, and investors seeking comfort with character.</p>
+          <form class="hero-search" id="heroSearch" aria-label="Search properties">
+            <label for="searchInput">Search by city, district, or property name</label>
+            <div class="search-row">
+              <input id="searchInput" name="search" type="search" inputmode="search" autocomplete="off" enterkeyhint="search" placeholder="Try Accra, Cape Town, Lisbon, or Marina" required>
+              <button class="btn btn-primary" type="submit">Explore</button>
+            </div>
+          </form>
+          <div class="hero-stats" aria-label="TOUR-HOMES highlights">
+            <div><strong>24</strong><span>curated homes</span></div>
+            <div><strong>14</strong><span>global locations</span></div>
+            <div><strong>4.8</strong><span>average guest rating</span></div>
+          </div>
+        </div>
+        <div class="hero-card" aria-label="Featured stay preview">
+          <img src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=80" width="900" height="1100" alt="Elegant living room with panoramic windows and designer furniture">
+          <div class="floating-card">
+            <span>Featured this week</span>
+            <strong>Marina Pearl Penthouse</strong>
+            <p>Dubai Marina · 3 bedrooms · $420/night</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container section-heading">
+        <p class="eyebrow">Featured collection</p>
+        <h2>Guest-loved homes ready for booking</h2>
+        <p>Explore polished city apartments, private villas, and investment-grade residences with practical amenities and memorable locations.</p>
+      </div>
+      <div class="container property-grid" id="featuredGrid" aria-live="polite"></div>
+      <div class="container center-actions">
+        <a class="btn btn-secondary" href="property.html">View all properties</a>
+      </div>
+    </section>
+
+    <section class="section muted-section">
+      <div class="container value-grid">
+        <div class="value-card">
+          <h3>Tourist stays</h3>
+          <p>Shortlist apartments near beaches, museums, restaurants, and business districts for comfortable travel planning.</p>
+        </div>
+        <div class="value-card">
+          <h3>Tenant-ready homes</h3>
+          <p>Compare furnished houses and serviced apartments with realistic guest limits, bedrooms, and amenities.</p>
+        </div>
+        <div class="value-card">
+          <h3>Investor perspective</h3>
+          <p>Review nightly rates, locations, and demand-driven features that support informed real estate decisions.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <strong>TOUR-HOMES</strong>
+        <p>Premium real estate stays for tourists, tenants, and investors.</p>
+      </div>
+      <a href="property.html">Browse properties</a>
+      <a href="contact.html">Plan a viewing</a>
+    </div>
+  </footer>
+
+  <script type="module" src="assets/js/nav.js"></script>
+  <script type="module" src="assets/js/home.js"></script>
+</body>
+</html>

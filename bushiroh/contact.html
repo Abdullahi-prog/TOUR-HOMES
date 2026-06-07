@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Contact | TOUR-HOMES</title>
+  <meta name="description" content="Contact TOUR-HOMES about a luxury stay, viewing, or investment shortlist.">
+  <link rel="stylesheet" href="assets/css/home.css">
+  <link rel="stylesheet" href="assets/css/contact.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav container" aria-label="Main navigation">
+      <a class="brand" href="index.html" aria-label="TOUR-HOMES home"><span class="brand-mark">TH</span><span>TOUR-HOMES</span></a>
+      <div class="nav-links" id="primaryNav">
+        <a href="index.html">Home</a>
+        <a href="property.html">Properties</a>
+        <a href="contact.html">Contact</a>
+        <a href="admin.html">Admin</a>
+      </div>
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">Dark</button>
+        <button class="nav-menu-toggle" id="navMenuToggle" type="button" aria-label="Open navigation menu" aria-controls="primaryNav" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <section class="container contact-layout">
+      <div>
+        <p class="eyebrow">Concierge contact</p>
+        <h1>Tell us what kind of home you want to tour.</h1>
+        <p>Send a local-only inquiry for a stay, long-let shortlist, or investment viewing. Messages are stored in this browser for MVP review.</p>
+        <div class="contact-card">
+          <strong>TOUR-HOMES concierge desk</strong>
+          <p>Airport-area apartments, beach villas, city penthouses, and investment residences across high-demand travel markets.</p>
+        </div>
+      </div>
+
+      <form class="contact-form" id="contactForm">
+        <div class="field-group">
+          <label for="fullName">Full name</label>
+          <input id="fullName" name="fullName" type="text" autocomplete="name" enterkeyhint="next" required>
+        </div>
+        <div class="field-group">
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" enterkeyhint="next" required>
+        </div>
+        <div class="field-group">
+          <label for="interest">Interest</label>
+          <select id="interest" name="interest" required>
+            <option value="Tourist stay">Tourist stay</option>
+            <option value="Tenant viewing">Tenant viewing</option>
+            <option value="Investor shortlist">Investor shortlist</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" rows="5" enterkeyhint="send" required></textarea>
+        </div>
+        <p class="form-message" id="contactMessage" role="alert"></p>
+        <button class="btn btn-primary full-btn" type="submit">Save inquiry</button>
+      </form>
+    </section>
+  </main>
+
+  <script type="module" src="assets/js/nav.js"></script>
+  <script type="module" src="assets/js/contact.js"></script>
+</body>
+</html>
