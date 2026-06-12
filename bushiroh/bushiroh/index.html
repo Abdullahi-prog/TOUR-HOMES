@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>TOUR-HOMES | Luxury Tourist Homes & Investment Stays</title>
+  <meta name="description" content="Browse premium apartments and houses for tourists, tenants, and investors with TOUR-HOMES.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/home.css">
+    <!-- GenMB Capabilities START -->
+    <script>
+// GenMB auth SDK (Capability)
+(function() {
+/**
+ * GenMB Auth SDK
+ * Provides Google Sign-In, Email Magic Link, and Email + Password
+ * authentication for GenMB-generated apps.
+ *
+ * This SDK is auto-injected and initialized. Use window.genmb.auth:
+ *   window.genmb.auth.ready()          // Wait for session check (async). Auto-verifies magic link tokens from URL.
+ *   window.genmb.auth.signIn()         // Open Google sign-in popup (auto-falls back to redirect)
+ *   window.genmb.auth.sendMagicLink(email) // Send a sign-in link to the email. Returns Promise.
+ *   window.genmb.auth.signUp(email, password, name?)        // Request OTP-verified signup. Returns Promise.
+ *   window.genmb.auth.verifySignUp(email, code)             // Consume OTP, create account, sign in. Returns Promise<User|null>.
+ *   window.genmb.auth.signInWithPassword(email, password)   // Direct password sign-in. Returns Promise<User|null>.
+ *   window.genmb.auth.requestPasswordReset(email)           // Send password-reset OTP. Returns Promise.
+ *   window.genmb.auth.confirmPasswordReset(email, code, newPassword) // Apply new password. Returns Promise.
+ *   window.genmb.auth.signOut()        // Sign out user
+ *   window.genmb.auth.getUser()        // Get current user or null
+ *   window.genmb.auth.isAuthenticated() // Check if signed in
+ *   window.genmb.auth.onAuthStateChange(callback) // Subscribe to changes
+ *
+ * User object: { id, email, name, picture }
+ *
+ * Error codes (error.code):
+ *   SIGN_IN_TIMEOUT - Popup sign-in timed out after 120s
+ *   SIGN_IN_FAILED  - Sign-in was rejected or returned an error
+ *   VERIFY_FAILED   - Magic link verification failed (expired or already used)
+ *   SIGNUP_FAILED   - Password signup failed (rate-limited, invalid password, OTP mismatch)
+ *   LOGIN_FAILED    - Password login failed (bad credentials or rate-limited)
+ *   RESET_FAILED    - Password reset failed (bad OTP or invalid password)
+ *   NETWORK_ERROR   - Network request failed
+ */
+
+class GenMBGoogleAuth {
+  constructor({ appId, baseUrl, onError }) {
+    if (!appId) {
+      throw new Error('GenMBGoogleAuth: appId is required')
+    }
+
+    this.appId = appId
+    this.baseUrl = (baseUrl || '/api/auth/google').replace(/\/$/, '')
+    this.user = null
+    this.listeners = []
+    this.onError = onError || console.error
+    this._ready = false
+    this._readyPromise = null
+    this._refreshTimer = null
+  }
+
+  /**
+   * Wait for SDK to be ready (session checked).
+   * Auto-verifies magic link tokens if ?magic_token=xxx is in the URL.
+   */
+  async ready() {
+    if (this._ready) return this
+    if (this._readyPromise) return this._readyPromise
+
+    var self = this
+    this._readyPromise = this.checkSession().then(function () {
+      // Auto-verify magic link token if present in URL and no existing session
+      if (!self.user) {
+        var params = new URLSearchParams(window.location.search)
+        var magicToken = params.get('magic_token')
+        if (magicToken) {
+          return self.verifyMagicLink(magicToken).catch(function () {
+            // Swallow error - cleanup happens below
+          }).then(function () {
+            // Clean up URL regardless of verification result
+            params.delete('magic_token')
+            var cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash
+            window.history.replaceState({}, '', cleanUrl)
+          })
+        }
+      }
+    }).then(function () {
+      self._ready = true
+      return self
+    })
+    return this._readyPromise
+  }
+
+  /**
+   * Sign in with Google. Tries popup first, auto-falls back to redirect if blocked.
+   */
+  async signIn() {
+    return new Promise((resolve, reject) => {
+      let settled = false
+
+      var width = 500
+      var height = 600
+      var left = window.screenX + (window.outerWidth - width) / 2
+      var top = window.screenY + (window.outerHeight - height) / 2
+
+      var popup = window.open(
+        this.baseUrl + '/authorize?app_id=' + encodeURIComponent(this.appId) + '&redirect=popup',
+        'genmb-google-signin',
+        'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',popup=1'
+      )
+
+      if (!popup || popup.closed) {
+        // Popup blocked - fall back to full-page redirect
+        window.location.href = this.baseUrl + '/authorize?app_id=' + encodeURIComponent(this.appId) + '&redirect=' + encodeURIComponent(window.location.href)
+        // Resolve with null since page will navigate away
+        resolve(null)
+        return
+      }
+
+      var cleanup = function () {
+        clearTimeout(timeout)
+        clearInterval(checkClosed)
+        window.removeEventListener('message', handleMessage)
+      }
+
+      var self = this
+
+      var timeout = setTimeout(function () {
+        if (settled) return
+        settled = true
+        cleanup()
+        popup.close()
+        var error = new Error("Sign-in took too long. Please try again.")
+        error.code = 'SIGN_IN_TIMEOUT'
+        self.onError(error)
+        reject(error)
+      }, 120000)
+
+      var handleMessage = function (event) {
+        var origin = event.origin
+        var isGenmb = origin === 'https://genmb.com' || origin.endsWith('.genmb.com')
+        var isLocalhost = origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')
+        if (!isGenmb && !isLocalhost) return
+
+        if (settled) return
+        settled = true
+        cleanup()
+
+        if (event.data && event.data.error) {
+          var error = new Error(event.data.error)
+          error.code = 'SIGN_IN_FAILED'
+          self.onError(error)
+          reject(error)
+        } else if (event.data && event.data.user) {
+          self.user = event.data.user
+          self._notifyListeners()
+          self._startRefreshTimer()
+          resolve(self.user)
+        }
+      }
+
+      var checkClosed = setInterval(function () {
+        if (popup.closed && !settled) {
+          settled = true
+          cleanup()
+          resolve(null)
+        }
+      }, 500)
+
+      window.addEventListener('message', handleMessage)
+    })
+  }
+
+  /**
+   * Send a magic link sign-in email.
+   * Always resolves (returns success even if email doesn't exist, to prevent enumeration).
+   * @param {string} email - User's email address
+   * @returns {Promise<{success: boolean, data?: object}>}
+   */
+  async sendMagicLink(email) {
+    try {
+      var res = await fetch('/api/auth/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, app_id: this.appId }),
+        credentials: 'include'
+      })
+      return await res.json()
+    } catch (err) {
+      var error = new Error("We couldn't send the sign-in link. Check your connection and try again.")
+      error.code = 'NETWORK_ERROR'
+      this.onError(error)
+      throw error
+    }
+  }
+
+  /**
+   * Verify a magic link token. Called automatically by ready() if URL contains ?magic_token=xxx.
+   * Can also be called manually.
+   * @param {string} token - The magic link token
+   * @returns {Promise<User|null>}
+   */
+  async verifyMagicLink(token) {
+    try {
+      var res = await fetch(
+        '/api/auth/email/verify?token=' + encodeURIComponent(token) + '&app_id=' + encodeURIComponent(this.appId),
+        { credentials: 'include' }
+      )
+      if (!res.ok) {
+        var error = new Error("This sign-in link has expired or already been used. Send yourself a new one.")
+        error.code = 'VERIFY_FAILED'
+        this.onError(error)
+        return null
+      }
+      var data = await res.json()
+      if (data.success && data.user) {
+        this.user = data.user
+        this._notifyListeners()
+        this._startRefreshTimer()
+      }
+      return this.user
+    } catch (err) {
+      var error = new Error("We couldn't sign you in. Check your connection and try again.")
+      error.code = 'NETWORK_ERROR'
+      this.onError(error)
+      return null
+    }
+  }
+
+  /**
+   * Sign up a new end-user with email + password (OTP-verified).
+   * Calls signUp -> show "check your email" UI -> verifySignUp.
+   */
+  async signUp(email, password, name) {
+    try {
+      var res = await fetch('/api/auth/password/signup-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password, name: name || null, app_id: this.appId }),
+        credentials: 'include',
+      })
+      var data = await res.json()
+      if (!data.success) {
+        var err = new Error(data.error || 'Sign-up failed')
+        err.code = 'SIGNUP_FAILED'
+        this.onError(err)
+        throw err
+      }
+      return data
+    } catch (err) {
+      if (err && err.code) throw err
+      var nerr = new Error("We couldn't reach the server. Check your connection and try again.")
+      nerr.code = 'NETWORK_ERROR'
+      this.onError(nerr)
+      throw nerr
+    }
+  }
+
+  /**
+   * Verify the OTP from signUp(), create the account, and sign in.
+   * Returns the User object on success, null on cookie failure.
+   */
+  async verifySignUp(email, code) {
+    try {
+      var res = await fetch('/api/auth/password/signup-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, code: code, app_id: this.appId }),
+        credentials: 'include',
+      })
+      var data = await res.json()
+      if (!data.success || !data.user) {
+        var err = new Error(data.error || 'Verification failed')
+        err.code = 'SIGNUP_FAILED'
+        this.onError(err)
+        throw err
+      }
+      this.user = data.user
+      this._notifyListeners()
+      this._startRefreshTimer()
+      return this.user
+    } catch (err) {
+      if (err && err.code) throw err
+      var nerr = new Error("We couldn't reach the server. Check your connection and try again.")
+      nerr.code = 'NETWORK_ERROR'
+      this.onError(nerr)
+      throw nerr
+    }
+  }
+
+  /**
+   * Sign in an existing user with email + password.
+   * Returns the User object on success, throws on failure.
+   */
+  async signInWithPassword(email, password) {
+    try {
+      var res = await fetch('/api/auth/password/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password, app_id: this.appId }),
+        credentials: 'include',
+      })
+      var data = await res.json()
+      if (!data.success || !data.user) {
+        var err = new Error(data.error || 'Invalid email or password')
+        err.code = 'LOGIN_FAILED'
+        this.onError(err)
+        throw err
+      }
+      this.user = data.user
+      this._notifyListeners()
+      this._startRefreshTimer()
+      return this.user
+    } catch (err) {
+      if (err && err.code) throw err
+      var nerr = new Error("We couldn't reach the server. Check your connection and try again.")
+      nerr.code = 'NETWORK_ERROR'
+      this.onError(nerr)
+      throw nerr
+    }
+  }
+
+  /**
+   * Send a password-reset OTP to the email. Always resolves (generic 200).
+   */
+  async requestPasswordReset(email) {
+    try {
+      var res = await fetch('/api/auth/password/reset-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, app_id: this.appId }),
+        credentials: 'include',
+      })
+      return await res.json()
+    } catch (err) {
+      var nerr = new Error("We couldn't reach the server. Check your connection and try again.")
+      nerr.code = 'NETWORK_ERROR'
+      this.onError(nerr)
+      throw nerr
+    }
+  }
+
+  /**
+   * Confirm a password reset with OTP + new password.
+   */
+  async confirmPasswordReset(email, code, newPassword) {
+    try {
+      var res = await fetch('/api/auth/password/reset-confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, code: code, newPassword: newPassword, app_id: this.appId }),
+        credentials: 'include',
+      })
+      var data = await res.json()
+      if (!data.success) {
+        var err = new Error(data.error || 'Password reset failed')
+        err.code = 'RESET_FAILED'
+        this.onError(err)
+        throw err
+      }
+      return data
+    } catch (err) {
+      if (err && err.code) throw err
+      var nerr = new Error("We couldn't reach the server. Check your connection and try again.")
+      nerr.code = 'NETWORK_ERROR'
+      this.onError(nerr)
+      throw nerr
+    }
+  }
+
+  /**
+   * Sign out the current user.
+   */
+  async signOut() {
+    this._stopRefreshTimer()
+
+    try {
+      await fetch(this.baseUrl + '/signout?app_id=' + encodeURIComponent(this.appId), {
+        method: 'POST',
+        credentials: 'include'
+      })
+    } catch (err) {
+      err.code = 'NETWORK_ERROR'
+      this.onError(err)
+    }
+
+    this.user = null
+    this._notifyListeners()
+  }
+
+  /**
+   * Check if user has an active session. Also refreshes the session expiry.
+   */
+  async checkSession() {
+    try {
+      var res = await fetch(this.baseUrl + '/session?app_id=' + encodeURIComponent(this.appId), {
+        credentials: 'include'
+      })
+
+      if (res.ok) {
+        this.user = await res.json()
+        this._notifyListeners()
+        this._startRefreshTimer()
+        // Refresh session expiry in the background
+        this._refreshSession()
+        return this.user
+      }
+      this._stopRefreshTimer()
+      return null
+    } catch (err) {
+      err.code = 'NETWORK_ERROR'
+      this.onError(err)
+      return null
+    }
+  }
+
+  /**
+   * Get the current user.
+   */
+  getUser() {
+    return this.user
+  }
+
+  /**
+   * Check if user is authenticated.
+   */
+  isAuthenticated() {
+    return this.user !== null
+  }
+
+  /**
+   * Subscribe to auth state changes.
+   */
+  onAuthStateChange(callback) {
+    this.listeners.push(callback)
+    callback(this.user)
+    var self = this
+    return function () {
+      self.listeners = self.listeners.filter(function (l) { return l !== callback })
+    }
+  }
+
+  /**
+   * Refresh the session to extend its expiry (fire-and-forget).
+   */
+  _refreshSession() {
+    fetch(this.baseUrl + '/refresh?app_id=' + encodeURIComponent(this.appId), {
+      method: 'POST',
+      credentials: 'include'
+    }).catch(function () {
+      // Silent - refresh is best-effort
+    })
+  }
+
+  /**
+   * Start periodic session refresh (every 30 minutes).
+   */
+  _startRefreshTimer() {
+    this._stopRefreshTimer()
+    var self = this
+    this._refreshTimer = setInterval(function () {
+      if (self.user) {
+        self._refreshSession()
+      }
+    }, 30 * 60 * 1000) // 30 minutes
+  }
+
+  /**
+   * Stop periodic session refresh.
+   */
+  _stopRefreshTimer() {
+    if (this._refreshTimer) {
+      clearInterval(this._refreshTimer)
+      this._refreshTimer = null
+    }
+  }
+
+  _notifyListeners() {
+    var self = this
+    this.listeners.forEach(function (listener) {
+      try {
+        listener(self.user)
+      } catch (err) {
+        console.error('Error in auth state listener:', err)
+      }
+    })
+  }
+}
+
+// Export for ES modules (when loaded via import)
+if (typeof window !== 'undefined') {
+  window.GenMBGoogleAuth = GenMBGoogleAuth;
+}
+
+
+// Auto-initialize
+window.genmb = window.genmb || {};
+const config = {
+  "appId": "lmtasGrC11oz",
+  "baseUrl": "/api/auth/google"
+};
+window.genmb.auth = new GenMBGoogleAuth(config);
+window.genmb.auth.ready();
+})();
+</script>
+    <script>
+// GenMB relational-db SDK (Capability)
+(function() {
+/**
+ * GenMB Data Client SDK
+ * Relational database CRUD client for generated apps.
+ * Auto-injected at window.genmb.db.
+ *
+ * Usage: window.genmb.db.tableName.method()
+ *   .list(params?)      — List records (filtering, sorting, pagination)
+ *   .getById(id)        — Get single record
+ *   .create(fields)     — Insert new record
+ *   .update(id, fields) — Update record
+ *   .delete(id)         — Remove record
+ *   .count(params?)     — Count records (no data fetched)
+ *   .createMany(records) — Bulk insert (max 100)
+ *   .deleteMany(ids)    — Bulk delete (max 100)
+ *   .subscribe(cb)      — Live changes: cb({type,table,id,record}) on each
+ *                         create/update/delete. Returns an unsubscribe fn.
+ *                         Delivered across server instances, but at-most-once
+ *                         (no replay): refetch on reconnect for guaranteed state.
+ */
+
+// Map any error string (raw or backend-friendly) to ONE plain sentence safe to
+// show a non-technical end user. The backend already returns friendly text, but
+// this is the last-mile guard for older deployments / unmapped cases so raw
+// Postgres grammar never reaches the UI.
+function _friendlyMsg(s) {
+  if (!s) return 'Something went wrong. Please try again.'
+  var t = String(s)
+  if (/not-null|null value in column|required field was missing/i.test(t)) return 'Please fill in all required fields.'
+  if (/does not exist|undefined column|unknown field|doesn't exist yet/i.test(t)) return 'Something needs updating in this app. Please try again later.'
+  if (/being set up|setting up/i.test(t)) return 'Setting things up. Please try again in a moment.'
+  if (/not found in schema|no schema found|not provisioned/i.test(t)) return "This part of the app isn't ready yet. Please try again shortly."
+  if (/duplicate key|already exists|unique/i.test(t)) return 'That item already exists.'
+  if (/foreign key|linked record is missing/i.test(t)) return 'A linked item is missing.'
+  return t
+}
+
+class GenMBDataClient {
+  constructor(config) {
+    if (!config.appId) {
+      throw new Error('GenMBDataClient: appId is required')
+    }
+    this._base = '/api/data/' + config.appId
+    this._realtimeBase = '/api/realtime/' + config.appId
+
+    // Return a Proxy so property access creates table helpers dynamically
+    return new Proxy(this, {
+      get: function (target, prop) {
+        // Internal properties and methods pass through
+        if (prop in target || typeof prop === 'symbol' || prop === 'then') {
+          return target[prop]
+        }
+        return target._table(prop)
+      }
+    })
+  }
+
+  _table(name) {
+    var base = this._base
+    var request = this._request
+    var realtimeBase = this._realtimeBase
+
+    return {
+      list: function (params) {
+        var qs = ''
+        if (params) {
+          var parts = []
+          Object.keys(params).forEach(function (key) {
+            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+          })
+          if (parts.length) qs = '?' + parts.join('&')
+        }
+        return request('GET', base + '/' + name + qs)
+      },
+      getById: function (id) {
+        return request('GET', base + '/' + name + '/' + id)
+      },
+      create: function (fields) {
+        return request('POST', base + '/' + name, { fields: fields })
+      },
+      update: function (id, fields) {
+        return request('PUT', base + '/' + name + '/' + id, { fields: fields })
+      },
+      delete: function (id) {
+        return request('DELETE', base + '/' + name + '/' + id)
+      },
+      count: function (params) {
+        var qs = ''
+        if (params) {
+          var parts = []
+          Object.keys(params).forEach(function (key) {
+            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+          })
+          if (parts.length) qs = '?' + parts.join('&')
+        }
+        return request('GET', base + '/' + name + '/count' + qs)
+      },
+      createMany: function (records) {
+        return request('POST', base + '/' + name + '/bulk', { records: records })
+      },
+      deleteMany: function (ids) {
+        return request('POST', base + '/' + name + '/bulk-delete', { ids: ids })
+      },
+      // Subscribe to live create/update/delete events for this table. Prefers
+      // the shared realtime SDK (window.genmb.realtime) when present so reconnect
+      // + heartbeat are handled there; otherwise opens its own SSE stream to the
+      // same backend channel. Returns an unsubscribe function.
+      subscribe: function (callback) {
+        var channel = 'db:' + name
+        if (window.genmb && window.genmb.realtime &&
+            typeof window.genmb.realtime.subscribe === 'function') {
+          return window.genmb.realtime.subscribe(channel, callback)
+        }
+        var url = realtimeBase + '/subscribe?channel=' + encodeURIComponent(channel)
+        var source = new EventSource(url, { withCredentials: true })
+        source.onmessage = function (e) {
+          try { callback(JSON.parse(e.data)) } catch (_) { callback(e.data) }
+        }
+        return function () { source.close() }
+      }
+    }
+  }
+
+  // NOTE: callers invoke this UNBOUND (var request = this._request), so it must
+  // not reference `this`. Retry is a loop, not recursion, for the same reason.
+  async _request(method, url, body) {
+    var attempt = 0
+    var provisionAttempt = 0
+    while (true) {
+      var controller = new AbortController()
+      var timer = setTimeout(function () { controller.abort() }, 30000)
+      try {
+        var options = {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal
+        }
+        if (body) {
+          options.body = JSON.stringify(body)
+        }
+        var res = await fetch(url, options)
+        clearTimeout(timer)
+        if (!res.ok) {
+          // Retry transient server failures (5xx) with backoff. NEVER retry
+          // 4xx - a validation/constraint error never succeeds on replay.
+          if (res.status >= 500 && attempt < 2) {
+            attempt++
+            await new Promise(function (r) { setTimeout(r, 300 * attempt) })
+            continue
+          }
+          var errBody = null
+          try { errBody = await res.json() } catch (_) {}
+          // Deployed apps proxy raised backend exceptions through verbatim, so
+          // the message lands in `detail` (FastAPI default), not `error` (only
+          // the preview proxy maps detail->error). Read both or the provisioning
+          // retry + friendly messages below never see the real text in prod.
+          var raw = (errBody && (errBody.error || errBody.detail)) || ('Request failed (HTTP ' + res.status + ')')
+          // Right after an app is generated the DB may still be provisioning.
+          // The backend auto-re-triggers it and returns "Database is being set
+          // up" (api/routers/dataconnect.py _get_app_schema). Wait and retry
+          // transparently so a non-technical user's first calls just work
+          // instead of surfacing a scary error. Keyed on the message text - keep
+          // in sync with that string.
+          if (/being set up|setting up/i.test(raw) && provisionAttempt < 6) {
+            provisionAttempt++
+            await new Promise(function (r) { setTimeout(r, Math.min(3000, 800 * provisionAttempt)) })
+            continue
+          }
+          throw new Error(_friendlyMsg(raw))
+        }
+        var result = await res.json()
+        if (!result.success) {
+          throw new Error(_friendlyMsg(result.error))
+        }
+        return result.data
+      } catch (err) {
+        clearTimeout(timer)
+        if (err.name === 'AbortError') {
+          // Timeout - likely a cold connection. Retry with backoff.
+          if (attempt < 2) {
+            attempt++
+            await new Promise(function (r) { setTimeout(r, 300 * attempt) })
+            continue
+          }
+          throw new Error('The database took too long to respond. Please try again.')
+        }
+        throw err
+      }
+    }
+  }
+}
+
+
+// Auto-initialize
+window.genmb = window.genmb || {};
+const config = {
+  "appId": "lmtasGrC11oz"
+};
+window.genmb.db = new GenMBDataClient(config);
+})();
+</script>
+    <script>
+// GenMB rbac SDK (Capability)
+(function() {
+/**
+ * GenMB RBAC SDK
+ * Provides role-based access control for GenMB-generated apps.
+ *
+ * This SDK is auto-injected and initialized. Use window.genmb.rbac:
+ *   window.genmb.rbac.setRole(role, permissions)  // Set current user's role (called by generated code)
+ *   window.genmb.rbac.getRole()                   // Get current role name or null
+ *   window.genmb.rbac.hasRole(role)               // Check if user has specific role
+ *   window.genmb.rbac.hasPermission(perm)         // Check if user has permission
+ *   window.genmb.rbac.isAdmin()                   // Shorthand for hasRole('admin')
+ *   window.genmb.rbac.requireRole(role)           // Throws if user lacks role
+ *   window.genmb.rbac.onRoleChange(callback)      // Subscribe to role changes
+ *
+ * The generated app code is responsible for:
+ *   1. Loading the user's role from the database after authentication
+ *   2. Calling setRole(roleName, permissions) to update the SDK state
+ *   3. Implementing first-user-is-admin bootstrap logic
+ */
+
+class GenMBRBAC {
+  constructor({ appId }) {
+    if (!appId) {
+      throw new Error('GenMBRBAC: appId is required')
+    }
+
+    this.appId = appId
+    this._role = null
+    this._permissions = []
+    this._listeners = []
+    this._ready = false
+    this._readyPromise = null
+    this._roleLoader = null
+    this._unsubscribeAuth = null
+  }
+
+  /**
+   * Register a function that loads the user's role from the database.
+   * Called automatically when auth state changes.
+   *
+   * @param {(user: object) => Promise<{role: string, permissions: string[]}|null>} loader
+   */
+  setRoleLoader(loader) {
+    this._roleLoader = loader
+  }
+
+  /**
+   * Wait for SDK to be ready.
+   * If auth is available, waits for auth then loads role via registered loader.
+   */
+  async ready() {
+    if (this._ready) return this
+    if (this._readyPromise) return this._readyPromise
+
+    this._readyPromise = (async () => {
+      try {
+        // Wait for auth SDK if available
+        if (window.genmb && window.genmb.auth) {
+          await window.genmb.auth.ready()
+
+          // Listen for auth changes to load/clear role.
+          // onAuthStateChange fires immediately with current user,
+          // so this handles both initial load and future sign-in/out.
+          this._unsubscribeAuth = window.genmb.auth.onAuthStateChange(async (user) => {
+            if (user && this._roleLoader) {
+              await this._loadRole(user)
+            } else {
+              this._role = null
+              this._permissions = []
+              this._notifyListeners()
+            }
+          })
+        }
+      } catch (err) {
+        console.error('GenMBRBAC: Error during initialization:', err)
+      }
+
+      this._ready = true
+      return this
+    })()
+
+    return this._readyPromise
+  }
+
+  /**
+   * Load role using the registered loader.
+   * @private
+   */
+  async _loadRole(user) {
+    try {
+      const result = await this._roleLoader(user)
+      if (result && result.role) {
+        this._role = result.role
+        this._permissions = result.permissions || []
+        this._notifyListeners()
+      }
+    } catch (err) {
+      console.error('GenMBRBAC: Error loading role:', err)
+    }
+  }
+
+  /**
+   * Set the current user's role and permissions.
+   * Called by generated app code after loading from database.
+   *
+   * @param {string} role - Role name (e.g., "admin", "editor", "viewer")
+   * @param {string[]} permissions - Permission strings (e.g., ["posts:write", "users:manage"])
+   */
+  setRole(role, permissions) {
+    if (typeof role !== 'string') {
+      console.error('GenMBRBAC: role must be a string')
+      return
+    }
+    this._role = role
+    this._permissions = Array.isArray(permissions) ? permissions : []
+    this._notifyListeners()
+  }
+
+  /**
+   * Clear role (e.g., on sign out).
+   */
+  clearRole() {
+    this._role = null
+    this._permissions = []
+    this._notifyListeners()
+  }
+
+  /**
+   * Get the current user's role name.
+   * @returns {string|null}
+   */
+  getRole() {
+    return this._role
+  }
+
+  /**
+   * Get the current user's permissions array.
+   * @returns {string[]}
+   */
+  getRolePermissions() {
+    return this._permissions.slice()
+  }
+
+  /**
+   * Check if user has a specific role.
+   * @param {string} role
+   * @returns {boolean}
+   */
+  hasRole(role) {
+    return this._role === role
+  }
+
+  /**
+   * Check if user has a specific permission.
+   * Wildcard "*" matches all permissions.
+   * @param {string} permission
+   * @returns {boolean}
+   */
+  hasPermission(permission) {
+    return this._permissions.includes('*') || this._permissions.includes(permission)
+  }
+
+  /**
+   * Check if user is an admin.
+   * @returns {boolean}
+   */
+  isAdmin() {
+    return this._role === 'admin'
+  }
+
+  /**
+   * Require a specific role. Throws if user doesn't have it.
+   * Use for page guards.
+   * @param {string} role
+   * @throws {Error}
+   */
+  requireRole(role) {
+    if (this._role !== role) {
+      throw new Error('Access denied: requires role "' + role + '"')
+    }
+  }
+
+  /**
+   * Require a specific permission. Throws if user doesn't have it.
+   * @param {string} permission
+   * @throws {Error}
+   */
+  requirePermission(permission) {
+    if (!this.hasPermission(permission)) {
+      throw new Error('Access denied: requires permission "' + permission + '"')
+    }
+  }
+
+  /**
+   * Subscribe to role changes. Callback receives (role, permissions).
+   * Returns an unsubscribe function.
+   *
+   * @param {(role: string|null, permissions: string[]) => void} callback
+   * @returns {() => void} Unsubscribe function
+   */
+  onRoleChange(callback) {
+    this._listeners.push(callback)
+    // Immediately notify with current state
+    callback(this._role, this._permissions)
+    return () => {
+      this._listeners = this._listeners.filter(l => l !== callback)
+    }
+  }
+
+  /** @private */
+  _notifyListeners() {
+    this._listeners.forEach(listener => {
+      try {
+        listener(this._role, this._permissions)
+      } catch (err) {
+        console.error('GenMBRBAC: Error in role change listener:', err)
+      }
+    })
+  }
+}
+
+// Export for ES modules
+if (typeof window !== 'undefined') {
+  window.GenMBRBAC = GenMBRBAC;
+}
+
+
+// Auto-initialize
+window.genmb = window.genmb || {};
+const config = {
+  "appId": "lmtasGrC11oz"
+};
+window.genmb.rbac = new GenMBRBAC(config);
+})();
+</script>
+    <!-- GenMB Capabilities END -->
+  </head>
+<body>
+  <header class="site-header">
+    <nav class="nav container" aria-label="Main navigation">
+      <a class="brand" href="index.html" aria-label="TOUR-HOMES home">
+        <span class="brand-mark">TH</span>
+        <span>TOUR-HOMES</span>
+      </a>
+      <div class="nav-links" id="primaryNav">
+        <a href="index.html">Home</a>
+        <a href="property.html">Properties</a>
+        <a href="contact.html">Contact</a>
+        <a href="admin.html">Admin</a>
+      </div>
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode"><i class="fas fa-moon"></i></button>
+        <button class="nav-menu-toggle" id="navMenuToggle" type="button" aria-label="Open navigation menu" aria-controls="primaryNav" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Curated luxury homes for short stays and smart investments</p>
+          <h1>Find a refined home base for every journey.</h1>
+          <p class="hero-lead">TOUR-HOMES showcases premium apartments, villas, townhouses, and coastal residences designed for tourists, tenants, and investors seeking comfort with character.</p>
+          <form class="hero-search" id="heroSearch" aria-label="Search properties">
+            <label for="searchInput">Search by city, district, or property name</label>
+            <div class="search-row">
+              <input id="searchInput" name="search" type="search" inputmode="search" autocomplete="off" enterkeyhint="search" placeholder="Try Accra, Cape Town, Lisbon, or Marina" required>
+              <button class="btn btn-primary" type="submit">Explore</button>
+            </div>
+          </form>
+          <div class="hero-stats" aria-label="TOUR-HOMES highlights">
+            <div><strong>24</strong><span>curated homes</span></div>
+            <div><strong>14</strong><span>global locations</span></div>
+            <div><strong>4.8</strong><span>average guest rating</span></div>
+          </div>
+        </div>
+        <div class="hero-card" aria-label="Featured stay preview">
+          <img src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=80" width="900" height="1100" alt="Elegant living room with panoramic windows and designer furniture">
+          <div class="floating-card">
+            <span>Featured this week</span>
+            <strong>Marina Pearl Penthouse</strong>
+            <p>Dubai Marina · 3 bedrooms · $420/night</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container section-heading">
+        <p class="eyebrow">Featured collection</p>
+        <h2>Guest-loved homes ready for booking</h2>
+        <p>Explore polished city apartments, private villas, and investment-grade residences with practical amenities and memorable locations.</p>
+      </div>
+      <div class="container property-grid" id="featuredGrid" aria-live="polite"></div>
+      <div class="container center-actions">
+        <a class="btn btn-secondary" href="property.html">View all properties</a>
+      </div>
+    </section>
+
+    <section class="section muted-section">
+      <div class="container value-grid">
+        <div class="value-card">
+          <h3>Tourist stays</h3>
+          <p>Shortlist apartments near beaches, museums, restaurants, and business districts for comfortable travel planning.</p>
+        </div>
+        <div class="value-card">
+          <h3>Tenant-ready homes</h3>
+          <p>Compare furnished houses and serviced apartments with realistic guest limits, bedrooms, and amenities.</p>
+        </div>
+        <div class="value-card">
+          <h3>Investor perspective</h3>
+          <p>Review nightly rates, locations, and demand-driven features that support informed real estate decisions.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <strong>TOUR-HOMES</strong>
+        <p>Premium real estate stays for tourists, tenants, and investors.</p>
+      </div>
+      <a href="property.html">Browse properties</a>
+      <a href="contact.html">Plan a viewing</a>
+    </div>
+  </footer>
+
+  <script type="module" src="assets/js/nav.js"></script>
+  <script type="module" src="assets/js/home.js"></script>
+</body>
+</html>

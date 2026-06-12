@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Properties | TOUR-HOMES</title>
+  <meta name="description" content="Search and review TOUR-HOMES luxury apartments and houses.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/home.css">
+  <link rel="stylesheet" href="assets/css/property.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav container" aria-label="Main navigation">
+      <a class="brand" href="index.html" aria-label="TOUR-HOMES home"><span class="brand-mark">TH</span><span>TOUR-HOMES</span></a>
+      <div class="nav-links" id="primaryNav">
+        <a href="index.html">Home</a>
+        <a href="property.html">Properties</a>
+        <a href="contact.html">Contact</a>
+        <a href="admin.html">Admin</a>
+      </div>
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode"><i class="fas fa-moon"></i></button>
+        <button class="nav-menu-toggle" id="navMenuToggle" type="button" aria-label="Open navigation menu" aria-controls="primaryNav" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+    </nav>
+  </header>
+
+  <main id="propertyApp" class="page-shell" aria-live="polite"></main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <strong>TOUR-HOMES</strong>
+        <p>Luxury listings with simulated bookings and verified guest-style reviews.</p>
+      </div>
+      <a href="booking.html">Booking desk</a>
+      <a href="admin.html">Dashboard</a>
+    </div>
+  </footer>
+
+  <script type="module" src="assets/js/nav.js"></script>
+  <script type="module" src="assets/js/property.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Book a Stay | TOUR-HOMES</title>
+  <meta name="description" content="Simulate a TOUR-HOMES booking and store it locally.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/home.css">
+  <link rel="stylesheet" href="assets/css/booking.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav container" aria-label="Main navigation">
+      <a class="brand" href="index.html" aria-label="TOUR-HOMES home"><span class="brand-mark">TH</span><span>TOUR-HOMES</span></a>
+      <div class="nav-links" id="primaryNav">
+        <a href="index.html">Home</a>
+        <a href="property.html">Properties</a>
+        <a href="contact.html">Contact</a>
+        <a href="admin.html">Admin</a>
+      </div>
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode"><i class="fas fa-moon"></i></button>
+        <button class="nav-menu-toggle" id="navMenuToggle" type="button" aria-label="Open navigation menu" aria-controls="primaryNav" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <section class="container booking-layout">
+      <div class="booking-copy">
+        <p class="eyebrow">Booking simulation</p>
+        <h1>Reserve your preferred TOUR-HOMES stay</h1>
+        <p>Choose dates and guest count to calculate a transparent frontend-only booking total. Confirmed bookings are saved in your browser localStorage.</p>
+        <div id="bookingPropertyPreview" class="booking-preview" aria-live="polite"></div>
+      </div>
+
+      <form class="booking-form" id="bookingForm">
+        <div class="field-group">
+          <label for="propertySelect">Property</label>
+          <select id="propertySelect" name="propertyId" required></select>
+        </div>
+        <div class="form-grid-two">
+          <div class="field-group">
+            <label for="checkIn">Check-in</label>
+            <input id="checkIn" name="checkIn" type="date" autocomplete="off" required>
+          </div>
+          <div class="field-group">
+            <label for="checkOut">Check-out</label>
+            <input id="checkOut" name="checkOut" type="date" autocomplete="off" required>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="guests">Guests</label>
+          <input id="guests" name="guests" type="number" min="1" inputmode="numeric" enterkeyhint="done" required>
+        </div>
+        <div class="price-panel" id="pricePanel">Select dates to calculate your stay.</div>
+        <p class="form-message" id="bookingMessage" role="alert"></p>
+        <button class="btn btn-primary full-btn" type="submit">Confirm booking</button>
+      </form>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="successModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h2 id="modalTitle">Booking saved</h2>
+      <p id="modalText">Your TOUR-HOMES booking has been stored locally.</p>
+      <div class="modal-actions">
+        <a class="btn btn-secondary" href="admin.html">View dashboard</a>
+        <button class="btn btn-primary" id="closeModal" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/nav.js"></script>
+  <script type="module" src="assets/js/booking.js"></script>
+</body>
+</html>
